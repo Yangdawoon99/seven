@@ -37,9 +37,21 @@ app.get('/api/heroes', async (req, res) => {
 
 app.post('/api/heroes', async (req, res) => {
     if (checkSupabase(res)) return;
-    const hero = req.body;
+    const raw = req.body;
+
+    // Ensure correct fields for heroes
+    const hero = {
+        id: raw.id,
+        name: raw.name,
+        type: raw.type,
+        stats: raw.stats
+    };
+
     const { data, error } = await supabase.from('heroes').upsert(hero);
-    if (error) return res.status(500).json({ error: error.message, details: "Check if 'heroes' table exists in Supabase." });
+    if (error) {
+        console.error("Supabase Error (Heroes):", error);
+        return res.status(500).json({ error: error.message, details: "Check if 'heroes' table exists." });
+    }
     res.json({ message: 'Hero saved', data });
 });
 
@@ -58,9 +70,27 @@ app.get('/api/equipment', async (req, res) => {
 
 app.post('/api/equipment', async (req, res) => {
     if (checkSupabase(res)) return;
-    const equip = req.body;
+    const raw = req.body;
+
+    // Map CamelCase (frontend) to snake_case (DB)
+    const equip = {
+        id: raw.id,
+        category: raw.category,
+        sub_type: raw.subType || raw.sub_type,
+        name: raw.name,
+        set: raw.set || raw.set_name,
+        grade: raw.grade,
+        enhance: raw.enhance,
+        main_option: raw.mainOption || raw.main_option,
+        sub_options: raw.subOptions || raw.sub_options,
+        is_equipped: raw.isEquipped !== undefined ? raw.isEquipped : (raw.is_equipped !== undefined ? raw.is_equipped : false)
+    };
+
     const { data, error } = await supabase.from('equipment').upsert(equip);
-    if (error) return res.status(500).json({ error: error.message, details: "Check if 'equipment' table exists in Supabase." });
+    if (error) {
+        console.error("Supabase Error (Equipment):", error);
+        return res.status(500).json({ error: error.message, details: "Check if 'equipment' table and columns match the schema." });
+    }
     res.json({ message: 'Equipment saved', data });
 });
 
