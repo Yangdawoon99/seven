@@ -10,15 +10,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Simple Access Authentication
     const AUTH_CODE = 'senafinal0522';
 
+    // Debug function: type 'resetSena()' in console if needed
+    window.resetSena = () => {
+        sessionStorage.removeItem('sena_auth');
+        location.reload();
+    };
+
     // Check session first
     if (sessionStorage.getItem('sena_auth') !== 'true') {
-        const userInput = window.prompt("인증 코드를 입력하세요:");
+        console.log("Authentication required.");
+        const userInput = window.prompt("SENA-RE GEAR 접속 인증\n인증 코드를 입력하세요 (관리 주소 제외):");
 
         if (userInput === AUTH_CODE) {
             sessionStorage.setItem('sena_auth', 'true');
+            console.log("Authenticated successfully.");
         } else {
             alert("인증에 실패했습니다. 올바른 사용자만 접근 가능합니다.");
-            document.body.innerHTML = "<h1 style='color:white; text-align:center; margin-top:100px;'>Access Denied.</h1>";
+            document.body.innerHTML = "<div style='background:#0b0c10; color:white; height:100vh; display:flex; align-items:center; justify-content:center;'><h1>Access Denied.</h1></div>";
             return; // Stop initialization
         }
     }
