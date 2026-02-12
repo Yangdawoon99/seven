@@ -1,0 +1,190 @@
+import { heroes as staticHeroes } from '/data/heroes.js';
+import { equipmentData } from '/data/equipment.js'; // Need options list
+import { ApiService } from '/js/services/api.js';
+import { STAT_LABELS } from '/js/utils/constants.js';
+
+let heroes = []; // Local cache for efficiency
+
+export async function initHeroesUI() {
+    await loadHeroes();
+    renderHeroList();
+    setupEventListeners();
+}
+
+async function loadHeroes() {
+    try {
+        heroes = await ApiService.getHeroes();
+
+        // Migration: If DB is empty but LS has data, migrate it
+        const lsData = localStorage.getItem('sena_heroes');
+        if (heroes.length === 0 && lsData) {
+            console.log("Migrating heroes from LocalStorage to DB...");
+            const lsHeroes = JSON.parse(lsData);
+            for (const h of lsHeroes) {
+                await ApiService.saveHero(h);
+            }
+            heroes = await ApiService.getHeroes();
+            // Optional: localStorage.removeItem('sena_heroes'); // Keep for safety until confirmed
+        }
+
+        // If still empty, use static seed data
+        if (heroes.length === 0) {
+            console.log("Seeding heroes from static data...");
+            for (const h of staticHeroes) {
+                await ApiService.saveHero(h);
+            }
+            heroes = await ApiService.getHeroes();
+        }
+
+        // Force Level 30 for all existing heroes
+        let changed = false;
+        for (let h of heroes) {
+            if (h.level !== 30) {
+                h.level = 30;
+                await ApiService.saveHero(h);
+                changed = true;
+            }
+        }
+        if (changed) heroes = await ApiService.getHeroes();
+    } catch (err) {
+        console.error("Failed to load heroes:", err);
+        heroes = staticHeroes; // Fallback
+    }
+}
+
+function setupEventListeners() {
+    const addHeroBtn = document.getElementById('add-hero-btn');
+    const modal = document.getElementById('hero-modal');
+    const closeBtn = modal.querySelector('.close-modal');
+    const form = document.getElementById('hero-form');
+
+    // ... (modal open/close listeners)
+    addHeroBtn.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('hero-id').value = '';
+        document.getElementById('hero-modal-title').innerText = '영웅 등록';
+        document.getElementById('btn-delete-hero').style.display = 'none';
+        modal.style.display = 'block';
+    });
+
+    closeBtn.addEventListener('click', () => { modal.style.display = 'none'; });
+    window.addEventListener('click', (e) => { if (e.target == modal) modal.style.display = 'none'; });
+
+    // Delete Handler
+    const deleteBtn = document.getElementById('btn-delete-hero');
+    deleteBtn.addEventListener('click', async () => {
+        const id = document.getElementById('hero-id').value;
+        if (id && confirm('정말로 이 영웅을 삭제하시겠습니까?')) {
+            const index = heroes.findIndex(h => h.id === id);
+            if (index > -1) {
+                await ApiService.deleteHero(id);
+                heroes.splice(index, 1);
+                renderHeroList();
+                modal.style.display = 'none';
+                document.getElementById('hero-count').innerText = heroes.length;
+            }
+        }
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const idInput = document.getElementById('hero-id').value;
+        const name = document.getElementById('hero-name').value;
+        const type = document.getElementById('hero-type').value;
+
+        // Capture Stats
+        const stats = {
+            attack: parseInt(document.getElementById('hero-atk').value) || 0,
+            defense: parseInt(document.getElementById('hero-def').value) || 0,
+            hp: parseInt(document.getElementById('hero-hp').value) || 0,
+            speed: parseInt(document.getElementById('hero-spd').value) || 0,
+            crit_rate: parseFloat(document.getElementById('hero-crit-rate').value) || 0,
+            crit_damage: parseFloat(document.getElementById('hero-crit-dmg').value) || 0,
+            weakness_rate: parseFloat(document.getElementById('hero-weak-rate').value) || 0,
+            block_rate: parseFloat(document.getElementById('hero-block-rate').value) || 0,
+            effect_hit: parseFloat(document.getElementById('hero-eff-hit').value) || 0,
+            effect_resist: parseFloat(document.getElementById('hero-eff-res').value) || 0
+        };
+
+        let hero;
+        if (idInput) {
+            hero = heroes.find(h => h.id === idInput);
+            if (hero) {
+                Object.assign(hero, { name, type, stats, level: 30 });
+            }
+        } else {
+            const newId = name.toLowerCase().replace(/\s/g, '_') + '_' + Date.now();
+            hero = { id: newId, name, type, level: 30, stats, priority: [] };
+            heroes.push(hero);
+        }
+
+        await ApiService.saveHero(hero);
+        renderHeroList();
+        modal.style.display = 'none';
+        form.reset();
+        document.getElementById('hero-count').innerText = heroes.length;
+    });
+}
+
+
+// Global Edit Function
+window.editHero = function (heroId) {
+    const hero = heroes.find(h => h.id === heroId);
+    if (!hero) return;
+
+    document.getElementById('hero-id').value = hero.id;
+    document.getElementById('hero-name').value = hero.name;
+    document.getElementById('hero-type').value = hero.type;
+
+    // Fill stats
+    document.getElementById('hero-atk').value = hero.stats.attack;
+    document.getElementById('hero-def').value = hero.stats.defense;
+    document.getElementById('hero-hp').value = hero.stats.hp;
+    document.getElementById('hero-spd').value = hero.stats.speed;
+    document.getElementById('hero-crit-rate').value = hero.stats.crit_rate;
+    document.getElementById('hero-crit-dmg').value = hero.stats.crit_damage;
+    document.getElementById('hero-weak-rate').value = hero.stats.weakness_rate;
+    document.getElementById('hero-block-rate').value = hero.stats.block_rate;
+    document.getElementById('hero-eff-hit').value = hero.stats.effect_hit;
+    document.getElementById('hero-eff-res').value = hero.stats.effect_resist;
+
+    document.getElementById('hero-modal-title').innerText = '영웅 정보 수정';
+    document.getElementById('btn-delete-hero').style.display = 'block';
+
+    document.getElementById('hero-modal').style.display = 'block';
+}
+// Removed populatePrefSelects and window.openPrefModal as requested
+
+function renderHeroList() {
+    const list = document.getElementById('hero-list');
+    list.innerHTML = '';
+
+    heroes.forEach(hero => {
+        const card = document.createElement('div');
+        card.className = 'card hero-card';
+
+        // Handle icon with fallback
+        const iconSrc = hero.icon ? hero.icon : 'https://via.placeholder.com/300?text=' + hero.name[0];
+
+        card.innerHTML = `
+            <div class="hero-image-container">
+                <img src="${iconSrc}" alt="${hero.name}" class="hero-avatar" onerror="this.src='https://via.placeholder.com/300?text=${hero.name[0]}'; this.onerror=null;">
+                <div class="hero-image-overlay"></div>
+                <button class="settings-btn" onclick="window.editHero('${hero.id}')" title="정보 수정">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+            <div class="hero-info">
+                <h3>${hero.name}</h3>
+                <p>${hero.type === 'physical' ? '물리형' : '마법형'}</p>
+                <div class="center-v">
+                    <span class="level-badge">Lv.${hero.level}</span>
+                </div>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+
+    // Update dashboard count
+    document.getElementById('hero-count').innerText = heroes.length;
+}

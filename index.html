@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sena-Re Gear Manager</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>Sena-Re<br>Manager</h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-tab="dashboard">
+                    <i class="fas fa-home"></i> <span>대시보드</span>
+                </li>
+                <li data-tab="heroes">
+                    <i class="fas fa-users"></i> <span>영웅 관리</span>
+                </li>
+                <li data-tab="equipment">
+                    <i class="fas fa-suitcase"></i> <span>장비 보관함</span>
+                </li>
+                <li data-tab="contents">
+                    <i class="fas fa-dungeon"></i> <span>세팅 최적화</span>
+                </li>
+                <li data-tab="presets">
+                    <i class="fas fa-save"></i> <span>프리셋 관리</span>
+                </li>
+                <li data-tab="settings">
+                    <i class="fas fa-cog"></i> <span>설정</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="page-title">대시보드</h1>
+                <div class="user-actions">
+                    <button id="help-btn" class="icon-btn" title="도움말"><i class="fas fa-question-circle"></i></button>
+                    <div class="profile">
+                        <span>대표님</span>
+                    </div>
+                </div>
+            </header>
+
+            <div id="content-area">
+                <!-- Dashboard (Default) -->
+                <div id="dashboard-section" class="section active">
+                    <div class="dashboard-widgets">
+                        <div class="widget card">
+                            <h3>등록된 영웅</h3>
+                            <p class="count" id="hero-count">0</p>
+                        </div>
+                        <div class="widget card">
+                            <h3>보유 장비</h3>
+                            <p class="count" id="equip-count">0</p>
+                        </div>
+                        <div class="widget card">
+                            <h3>최근 공략</h3>
+                            <p class="recent">없음</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Heroes Management -->
+                <div id="heroes-section" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>영웅 관리</h2>
+                        <button id="add-hero-btn" class="btn-primary"><i class="fas fa-plus"></i> 영웅 추가</button>
+                    </div>
+                    <div id="hero-list" class="grid-list">
+                        <!-- Hero Cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Equipment Inventory -->
+                <div id="equipment-section" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>장비 보관함</h2>
+                        <button id="add-equip-btn" class="btn-primary"><i class="fas fa-plus"></i> 장비 추가</button>
+                    </div>
+                    <div class="advanced-filter-area card">
+                        <!-- Category Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-th-large"></i> 카테고리</label>
+                            <div class="filter-chips" id="category-chips">
+                                <button class="chip active" data-value="all">전체</button>
+                                <button class="chip" data-value="weapon">무기</button>
+                                <button class="chip" data-value="armor">방어구</button>
+                            </div>
+                        </div>
+
+                        <!-- Set Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-layer-group"></i> 세트 필터</label>
+                            <div class="filter-chips" id="set-chips">
+                                <button class="chip active" data-value="all">모두</button>
+                                <!-- JS에서 동적 생성됨 -->
+                            </div>
+                        </div>
+
+                        <!-- Main Option Filter -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-crosshairs"></i> 메인 옵션</label>
+                            <div class="filter-chips" id="main-opt-chips">
+                                <button class="chip active" data-value="all">모두</button>
+                                <!-- JS에서 동적 생성됨 -->
+                            </div>
+                        </div>
+
+                        <!-- Sub Option Filter & Sort -->
+                        <div class="filter-group">
+                            <label><i class="fas fa-list-ul"></i> 서브 옵션 제어 (포함/제외/정렬)</label>
+                            <div id="sub-opt-filter-list" class="sub-filter-grid">
+                                <!-- JS에서 동적 생성됨 (V, X, Sort 버튼 포함) -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="equip-list" class="grid-list">
+                        <!-- Equipment Cards will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Content Strategy Section -->
+                <div id="contents-section" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>세팅 최적화</h2>
+                    </div>
+                    <div class="content-controls card">
+                        <div class="form-group">
+                            <label>최적화할 영웅 선택</label>
+                            <select id="opt-hero-select">
+                                <option value="">영웅을 선택하세요</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Priority Settings UI -->
+                        <div class="form-group">
+                            <label>최적화 우선순위 (영웅 맞춤형)</label>
+                            <div id="priority-list-container" class="priority-tag-container">
+                                <!-- Selected conditions appear here as tags -->
+                            </div>
+                            <button id="add-priority-btn" class="btn-primary"
+                                style="background: var(--bg-panel); border: 1px dashed var(--primary); color: var(--primary); margin-top: 10px; width: 100%;">
+                                <i class="fas fa-plus"></i> 조건 추가
+                            </button>
+                        </div>
+                        <div class="form-group"
+                            style="flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; margin-top: 5px;">
+                            <input type="checkbox" id="opt-force-set" checked style="width: auto;">
+                            <label for="opt-force-set" style="margin: 0; cursor: pointer;">세트 효과 우선 (체크 해제 시 깡스탯
+                                위주)</label>
+                        </div>
+                        <button id="optimize-btn" class="btn-primary" style="width:100%; margin-top:10px;">최적 장비
+                            찾기</button>
+
+                        <div id="opt-results-area" style="margin-top: 20px;">
+                            <!-- Results injected here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preset Management Section -->
+                <div id="presets-section" class="section" style="display: none;">
+                    <div class="section-header">
+                        <h2>프리셋 관리</h2>
+                    </div>
+                    <div id="preset-list" class="grid-list">
+                        <!-- Preset Cards will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modals -->
+            <div id="hero-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2 id="hero-modal-title">영웅 등록</h2>
+                    <form id="hero-form">
+                        <input type="hidden" id="hero-id">
+                        <div class="form-group">
+                            <label>이름</label>
+                            <input type="text" id="hero-name" required placeholder="예: 파스칼">
+                        </div>
+                        <div class="form-group">
+                            <label>타입</label>
+                            <select id="hero-type">
+                                <option value="magic">마법형</option>
+                                <option value="physical">물리형</option>
+                            </select>
+                        </div>
+                        <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div class="form-group"><label>공격력</label><input type="number" id="hero-atk"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>방어력</label><input type="number" id="hero-def"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>생명력</label><input type="number" id="hero-hp" placeholder="0">
+                            </div>
+                            <div class="form-group"><label>속공</label><input type="number" id="hero-spd" placeholder="0">
+                            </div>
+                            <div class="form-group"><label>치명타 확률 (%)</label><input type="number" id="hero-crit-rate"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>치명타 피해 (%)</label><input type="number" id="hero-crit-dmg"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>약점 공격 (%)</label><input type="number" id="hero-weak-rate"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>막기 확률 (%)</label><input type="number" id="hero-block-rate"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>효과 적중 (%)</label><input type="number" id="hero-eff-hit"
+                                    placeholder="0"></div>
+                            <div class="form-group"><label>효과 저항 (%)</label><input type="number" id="hero-eff-res"
+                                    placeholder="0"></div>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <button type="submit" class="btn-submit" style="flex:2;">저장</button>
+                            <button type="button" id="btn-delete-hero" class="btn-danger"
+                                style="flex:1; display:none; background-color:#ff4444; color:white; border:none; border-radius:4px; cursor:pointer;">
+                                삭제
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="equip-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>장비 등록</h2>
+                    <form id="equip-form">
+                        <input type="hidden" id="equip-id">
+                        <div class="form-group">
+                            <label>구분</label>
+                            <select id="equip-category">
+                                <option value="weapon_physical">물리 무기</option>
+                                <option value="weapon_magic">마법 무기</option>
+                                <option value="armor">방어구</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>세트</label>
+                            <select id="equip-set">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>장비명</label>
+                            <input type="text" id="equip-name" required placeholder="예: 빛나는 드래곤 슬레이어">
+                        </div>
+                        <div class="form-group">
+                            <label>메인 옵션</label>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <select id="equip-main-opt">
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <input type="number" id="equip-main-val" placeholder="수치" style="flex: 1;">
+                                    <span id="standard-stat-guide"
+                                        style="font-size: 0.85em; color: var(--primary); font-weight: 700; white-space: nowrap;"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>서브 옵션 (최대 4개)</label>
+                            <div class="sub-opt-row" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                                <select class="equip-sub-opt" style="flex: 2;"></select>
+                                <input type="number" class="equip-sub-val" placeholder="수치" style="flex: 1;">
+                            </div>
+                            <div class="sub-opt-row" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                                <select class="equip-sub-opt" style="flex: 2;"></select>
+                                <input type="number" class="equip-sub-val" placeholder="수치" style="flex: 1;">
+                            </div>
+                            <div class="sub-opt-row" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                                <select class="equip-sub-opt" style="flex: 2;"></select>
+                                <input type="number" class="equip-sub-val" placeholder="수치" style="flex: 1;">
+                            </div>
+                            <div class="sub-opt-row" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                                <select class="equip-sub-opt" style="flex: 2;"></select>
+                                <input type="number" class="equip-sub-val" placeholder="수치" style="flex: 1;">
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px; margin-top:20px;">
+                            <button type="submit" class="btn-submit" style="flex:2;">등록</button>
+                            <button type="button" id="btn-delete-equip" class="btn-danger"
+                                style="flex:1; display:none; background-color:#ff4444; color:white; border:none; border-radius:4px;">삭제</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Moved logic to contents section directly -->
+
+            <!-- Equipment Detail Modal -->
+            <div id="equip-detail-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2 id="detail-name" style="color:var(--accent-color);">장비 이름</h2>
+                    <div class="detail-info" style="margin-top:20px; text-align:left;">
+                        <p><strong style="color:#aaa;">종류:</strong> <span id="detail-type"></span></p>
+                        <p><strong style="color:#aaa;">세트:</strong> <span id="detail-set"></span></p>
+                        <hr style="border-color:#444; margin:15px 0;">
+                        <h3 style="font-size:1.1rem; margin-bottom:10px;">메인 옵션</h3>
+                        <p id="detail-main" style="color:#ffd700; font-size:1.2rem;"></p>
+                        <hr style="border-color:#444; margin:15px 0;">
+                        <h3 style="font-size:1.1rem; margin-bottom:10px;">서브 옵션</h3>
+                        <div id="detail-subs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priority Add Modal -->
+            <div id="priority-modal" class="modal">
+                <div class="modal-content" style="width: 350px;">
+                    <span class="close-modal">&times;</span>
+                    <h2>조건 추가</h2>
+                    <div class="form-group">
+                        <label>스탯 선택</label>
+                        <select id="p-stat-select">
+                            <option value="physical_attack">물리 공격력</option>
+                            <option value="magic_attack">마법 공격력</option>
+                            <option value="defense">방어력</option>
+                            <option value="hp">생명력</option>
+                            <option value="speed">속공</option>
+                            <option value="crit_rate">치명타 확률</option>
+                            <option value="crit_damage">치명타 피해</option>
+                            <option value="weakness_rate">약점 공격</option>
+                            <option value="block_rate">막기 확률</option>
+                            <option value="effect_hit">효과 적중</option>
+                            <option value="effect_resist">효과 저항</option>
+                            <option value="counter_rate">반격 확률</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>목표 방식</label>
+                        <select id="p-type-select">
+                            <option value="max">최대화 (Max)</option>
+                            <option value="min">목표값 이상 (Min)</option>
+                        </select>
+                    </div>
+                    <div id="p-val-group" class="form-group" style="display: none;">
+                        <label>목표 수치</label>
+                        <input type="number" id="p-val-input" placeholder="값을 입력하세요">
+                    </div>
+                    <button id="p-confirm-btn" class="btn-primary" style="width: 100%; margin-top: 10px;">추가하기</button>
+                </div>
+            </div>
+
+            <!-- Help Modal -->
+            <div id="help-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2><i class="fas fa-question-circle"></i> 도움말</h2>
+                    <div class="help-text" style="line-height: 1.6; color: #ddd;">
+                        <h3>1. 영웅 등록</h3>
+                        <p>좌측 '영웅 관리' 메뉴에서 [+ 영웅 추가] 버튼을 눌러보세요. 파스칼, 세인 등 보유한 영웅의 스탯을 입력하면 됩니다.</p>
+                        <br>
+                        <h3>2. 장비 등록</h3>
+                        <p>'장비 보관함'에서 무기와 방어구를 등록하세요. 세트 옵션과 메인/서브 옵션을 정확히 입력할수록 추천이 정확해집니다.</p>
+                        <br>
+                        <h3>3. 최적 세팅 추천</h3>
+                        <p>'콘텐츠 공략' 메뉴에서 [레이드]나 [쫄작]을 선택하세요. 코다리가 분석한 최적의 장비 조합을 자동으로 찾아줍니다!</p>
+                        <br>
+                        <h3>4. 영웅별 맞춤 설정</h3>
+                        <p>영웅 카드의 <i class="fas fa-cog"></i> 버튼을 눌러보세요. "나는 이 영웅에게 치명타를 몰아주고 싶어!"라고 설정할 수 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+    </div>
+    </main>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>

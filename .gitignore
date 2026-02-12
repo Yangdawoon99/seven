@@ -1,0 +1,8 @@
+node_modules/
+*.db
+*.db-journal
+.env
+.gemini/
+.DS_Store
+dist/
+build/
